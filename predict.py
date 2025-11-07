@@ -4,7 +4,7 @@ import torch
 import pandas as pd
 from typing import List, Union, Tuple
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModelForMaskedLM
+from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModelForCausalLM
 from minicons import scorer
 from argparse import ArgumentParser
 
@@ -14,7 +14,7 @@ def get_masked_token_predictions_batched(
         topk: int = 5,
         candidate: str = None,
         mask_str: str = "[MASK]",
-        batch_size: int = 8,
+        batch_size: int = 16,
         device: str = None,
         causallm: bool = False,
         model_name: str = "roberta-base",
@@ -42,8 +42,15 @@ def get_masked_token_predictions_batched(
         texts = [texts]
 
     if causallm:
+        if not revision:
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForCausalLM.from_pretrained(model_name)
+        if revision:
+            tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
+            model = AutoModelForCausalLM.from_pretrained(model_name, revision=revision)
+
         # use minicons Scorer on device
-        lm_scorer = scorer.IncrementalLMScorer(model_name, device)
+        lm_scorer = scorer.IncrementalLMScorer(model, tokenizer=tokenizer, device=device)
 
         outputs_all = []
         batched_outputs = []
