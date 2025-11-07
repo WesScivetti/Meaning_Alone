@@ -15,26 +15,26 @@ Let-Alone Scalar Semantics Experiments
 
 
 
-\# Overview
+## Overview
 
 This repository holds code for evaluating learning trajectories of scalar constructions. Code is available for both gathering log-probabilities from checkpoints and evaluation. 
 
 
 
-\# Dataset
+## Dataset
 
 * combined\_easy.tsv is currently the main dataset
 * Columns: 
 
 
 
-\# Set Up
+## Set Up
 
 * pip install -r requirements.txt
 
 
 
-\# Running Experiments: Step 1
+## Running Experiments: Step 1
 
 * Run predict\_pythia or predict\_ettin to query the checkpoints that are specified within. Edit the files to query different checkpoints.
 * Predictions are stored in the outputs directory, with subdirectories for the model and subsubdirectories for the checkpoints
@@ -42,6 +42,6 @@ This repository holds code for evaluating learning trajectories of scalar constr
 
 
 
-\# Running Experiments: Evaluation
+## Running Experiments: Evaluation
 
 * eval\_accuracy.sh to get accuracy of ettin checkpoints (in progress)
