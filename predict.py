@@ -49,6 +49,12 @@ def get_masked_token_predictions_batched(
             tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
             model = AutoModelForCausalLM.from_pretrained(model_name, revision=revision)
 
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
+        dev = next(model.parameters()).device
+        print(f"Model is on device: {dev}")
+
         # use minicons Scorer on device
         lm_scorer = scorer.IncrementalLMScorer(model, tokenizer=tokenizer, device=device)
 
@@ -122,6 +128,8 @@ def get_masked_token_predictions_batched(
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         model.to(device)
+        dev = next(model.parameters()).device
+        print(f"Model is on device: {dev}")
 
         outputs_all = []
 

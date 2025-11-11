@@ -8,7 +8,11 @@ PYTHON_BIN="python3"
 
 # Models to evaluate (each should correspond to a subdirectory under $ROOT_DIR)
 MODELS=(
-  "EleutherAI/pythia-410m"
+  "EleutherAI/pythia-160m true"
+  "EleutherAI/pythia-410m true"
+  "EleutherAI/pythia-1b true"
+  "EleutherAI/pythia-1.4b true"
+  "EleutherAI/pythia-2.8b true"
 )
 
 # Constructions to evaluate (must match what eval.py expects)

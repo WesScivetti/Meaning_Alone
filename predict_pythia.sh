@@ -21,8 +21,8 @@ OUTPUT_FILES=(
 #)
 
 MODELS=(
-  "EleutherAI/pythia-410m true"
   "EleutherAI/pythia-1.4b true"
+  "EleutherAI/pythia-2.8b true"
 )
 
 REVISIONS=(
@@ -38,7 +38,13 @@ REVISIONS=(
   "step512"
   "step1000"
   "step2000"
-  "step3000"
+  "step4000"
+  "step8000"
+  "step16000"
+  "step32000"
+  "step64000"
+  "step128000"
+  "step143000"
 )
 
 BATCH_SIZE=32
