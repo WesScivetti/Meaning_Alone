@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
-import re
 from collections import defaultdict
 from argparse import ArgumentParser
 
-def print_results_for_data_file(filename, cxn, log_probs=False):
+def print_results_for_data_file(filename, cxn, log_probs=False, world_knowledge_filter=None, verb=None):
     """
 
     Args:
@@ -73,20 +72,28 @@ def print_results_for_data_file(filename, cxn, log_probs=False):
 
 
     print("MEAN SCORE FOR LET-ALONE",np.mean(XY_LetAlone_XY_scores))
+    mean_aligned_la = np.mean(XY_LetAlone_XY_scores)
     print("MEAN SCORE FOR SWAPPED STIMULUS",np.mean(XY_LetAlone_YX_scores))
+    mean_la_rev_dir = np.mean(XY_LetAlone_YX_scores)
     print("MEAN SCORE FOR OR",np.mean(XY_Or_XY_scores))
+    mean_aligned_or = np.mean(XY_Or_XY_scores)
     print("MEAN SCORE FOR SWAPPED STIMULUS AND OR",np.mean(XY_Or_YX_scores))
+    mean_or_rev_dir = np.mean(XY_Or_YX_scores)
     print("Number of examples considered here", len(df.index)/2)
     print("\n")
     print("Now for the swapped condition")
     print("MEAN SCORE FOR LET-ALONE",np.mean(YX_LetAlone_XY_scores))
+    mean_misaligned_la = np.mean(YX_LetAlone_XY_scores)
     print("MEAN SCORE FOR SWAPPED STIMULUS",np.mean(YX_LetAlone_YX_scores))
+    mean_misaligned_la_rev_dir = np.mean(YX_LetAlone_YX_scores)
     print("MEAN SCORE FOR OR",np.mean(YX_Or_XY_scores))
+    mean_misaligned_or = np.mean(YX_Or_XY_scores)
     print("MEAN SCORE FOR SWAPPED STIMULUS AND OR",np.mean(YX_Or_YX_scores))
+    mean_misaligned_or_rev_dir = np.mean(YX_Or_YX_scores)
     print("Number of examples considered here", len(df.index)/2)
-    return
+    return mean_aligned_la, mean_la_rev_dir, mean_aligned_or, mean_or_rev_dir, mean_misaligned_la, mean_misaligned_la_rev_dir, mean_misaligned_or, mean_misaligned_or_rev_dir
 
-def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_knowledge_filter="all"):
+def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_knowledge_filter="all", verb=None):
   """"
   This takes the input file and computes an accuracy score by pairwise comparing logodds
   0,0,1 should be greater than 0,0,0
@@ -99,6 +106,10 @@ def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_k
   old_df = pd.read_csv(filename, sep='\t')
   allowed_cxns = [cxn, "or"]
   df = old_df[old_df["Cxn"].isin(allowed_cxns)]
+
+  if verb is not None:
+      df = df[df["Plain Verb"] == verb]
+
   score_dictionary = defaultdict(dict) #Will store the scores for [0,0][1] to correspond to 0,0,1 etc
   if world_knowledge_filter == "all":
       #don't filter anything
@@ -157,7 +168,8 @@ def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_k
       #Reset Rows
       rows = []
   print(f"Correct {correct} / {total} = {correct/total}")
-  return
+  acc = correct/total
+  return acc
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--input_tsv", type=str, required=True, help="Input TSV file with results")
@@ -166,9 +178,18 @@ if __name__ == "__main__":
     parser.add_argument("--accuracy", action="store_true", help="Whether to compute accuracy instead of mean scores")
     args = parser.parse_args()
 
+    reference_df = pd.read_csv(args.input_tsv, sep='\t')
+    verbs = reference_df["Plain Verb"].unique().tolist()
+
     if args.accuracy:
-      print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs)
-      print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned")
-      print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned")
+      acc_full = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs)
+      acc_aligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned")
+      acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned")
+      verb_accs = defaultdict(lambda: defaultdict(dict))
+      for v in verbs:
+            print(f"Verb specific results for verb {v}")
+            verb_accs[v]["all"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, verb=v)
+            verb_accs[v]["aligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned", verb=v)
+            verb_accs[v]["misaligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned", verb=v)
     else:
       print_results_for_data_file(args.input_tsv, args.construction, log_probs=args.log_probs)

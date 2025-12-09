@@ -1,5 +1,6 @@
 import os
 import re
+import torch.nn.functional as F
 import torch
 import pandas as pd
 from typing import List, Union, Tuple
@@ -7,6 +8,9 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModelForCausalLM
 from minicons import scorer
 from argparse import ArgumentParser
+import huggingface_hub, transformers
+
+from affinity import compute_affinities
 
 
 def get_masked_token_predictions_batched(
@@ -18,7 +22,8 @@ def get_masked_token_predictions_batched(
         device: str = None,
         causallm: bool = False,
         model_name: str = "roberta-base",
-        revision: str = ""
+        revision: str = "",
+        standard_bert = False
 ):
     """
     Compute predictions for masked tokens (MLM) or conditional log-probs (CLM).
@@ -37,6 +42,8 @@ def get_masked_token_predictions_batched(
         - If MLM: list of (results, prob_easier, prob_harder)
         - If CLM: list of dicts with conditional log-probs for easier/harder
     """
+
+    print("batch size:", batch_size)
 
     if isinstance(texts, str):
         texts = [texts]
@@ -65,59 +72,34 @@ def get_masked_token_predictions_batched(
 
             prefixes = []
             queries = []
-            # print(batch_texts)
-            # print("###")
+
             for t in batch_texts:
-                # print(t)
                 sent1, sent2 = t.split(".")[0] + ".", t.split(".")[1] + "."
-                # print(sent1, sent2)
-                # print("####")
                 prefixes.append(sent1)  # append twice
                 prefixes.append(sent1)
                 q1 = sent2.split("<MASK>")[0].strip() + " easier" + sent2.split("<MASK>")[1]
                 q2 = sent2.split("<MASK>")[0].strip() + " harder" + sent2.split("<MASK>")[1]
-                # print(q1)
-                # print(q2)
-                # print("#####")
                 queries.append(q1)
                 queries.append(q2)
-
-            # candidates
-
-            # queries = [sent2.split("<MASK>")[0].strip() + " easier" + sent2.split("<MASK>")[1], sent2.split("<MASK>")[0].strip() + " harder" + sent2.split("<MASK>")[1]] * batch_size
-
-            # print(len(prefixes), len(queries))
-            # print(prefixes)
-            # print(queries)
 
             # compute conditional scores
             scores = lm_scorer.conditional_score(prefixes, queries)
 
             batched_outputs.append((prefixes, scores))
 
-            # for i in range(len(prefixes)):
-            #   print(prefixes[i])
-            #   print(queries[i])
-            #   print(scores[i])
 
-            # asfsamf
 
-            # print(scores)
-
-            # package result
-        # print(batched_outputs)
+        # process batched outputs
         for prefs, scores in batched_outputs:
             all_stuff = list(zip(prefs, scores))
             result_list = list(zip(all_stuff[::2], all_stuff[1::2]))
             # print(result_list)
             for (pref, score_easier), (pref, score_harder) in result_list:
-                outputs_all.append((pref, score_easier, score_harder))
+                outputs_all.append((pref, score_easier, score_harder, "_", "_", "_", "_"))
         return outputs_all
 
     else:
-
-        # print("HELLO")
-        # MLM mode (like original)
+        # MLM mode
         if not revision:
             tokenizer = AutoTokenizer.from_pretrained(model_name)
             model = AutoModelForMaskedLM.from_pretrained(model_name)
@@ -136,6 +118,23 @@ def get_masked_token_predictions_batched(
         for i in tqdm(range(0, len(texts), batch_size), desc="Processing batches"):
             batch_texts = texts[i:i + batch_size]
             batch_texts = [re.sub("<MASK>", mask_str, t) for t in batch_texts]
+            first_sents = [s.split(".")[0] + "." for s in batch_texts]
+            cxn_list = []
+
+            for s in first_sents:
+                if "let alone" in s:
+                    cxn_list.append("letalone")
+                elif "much less" in s:
+                    cxn_list.append("muchless")
+                elif "not to mention" in s:
+                    cxn_list.append("nottomention")
+                elif "never mind" in s:
+                    cxn_list.append("nevermind")
+                elif "or" in s:
+                    cxn_list.append("or")
+                else:
+                    raise ValueError("Could not identify connective in sentence for affinity computation.")
+
 
             enc = tokenizer(
                 batch_texts,
@@ -150,6 +149,16 @@ def get_masked_token_predictions_batched(
             with torch.no_grad():
                 outputs = model(**enc)
             logits = outputs.logits
+            # print(tokenizer.convert_ids_to_tokens(tokenizer.encode(" easier, harder")))
+
+            let_global, let_local, alone_global, alone_local = compute_affinities(
+                batch_texts,
+                model,
+                tokenizer,
+                device=device,
+                standard_bert=standard_bert,
+                cxn_list=cxn_list,
+            )
 
             for b_idx, text in enumerate(batch_texts):
                 mask_positions = (input_ids[b_idx] == mask_token_id).nonzero(as_tuple=False).squeeze(1)
@@ -159,11 +168,10 @@ def get_masked_token_predictions_batched(
                     logits_for_mask = logits[b_idx, pos]
                     probs = torch.softmax(logits_for_mask, dim=-1)
 
-                    # top-k predictions
+                    # top-k predictions -- not currently used
                     top_probs, top_ids = torch.topk(probs, k=topk)
                     top_tokens = tokenizer.convert_ids_to_tokens(top_ids.tolist())
                     top = list(zip(top_tokens, top_probs.tolist()))
-
                     entry = {"top": top}
 
                     if candidate is not None:
@@ -173,14 +181,22 @@ def get_masked_token_predictions_batched(
                         entry["candidate"] = (cand_prob, cand_log_prob)
 
                     # "easier" and "harder"
-                    cand_easier = tokenizer.convert_tokens_to_ids("Ġeasier")
-                    cand_harder = tokenizer.convert_tokens_to_ids("Ġharder")
+                    # handle the fact that roberta uses Ġ for word-initial tokens and bert does not
+                    # print(tokenizer.convert_ids_to_tokens(tokenizer.encode(" easier, harder")))
+                    if not standard_bert:
+                        ez = "Ġeasier"
+                        hd = "Ġharder"
+                    else:
+                        ez = "easier"
+                        hd = "harder"
+                    cand_easier = tokenizer.convert_tokens_to_ids(ez)
+                    cand_harder = tokenizer.convert_tokens_to_ids(hd)
                     cand_easier_prob = probs[cand_easier].item()
                     cand_harder_prob = probs[cand_harder].item()
 
                     results[pos] = entry
 
-                outputs_all.append((results, cand_easier_prob, cand_harder_prob))
+                outputs_all.append((results, cand_easier_prob, cand_harder_prob, let_global[b_idx], let_local[b_idx], alone_global[b_idx], alone_local[b_idx]))
 
         return outputs_all
 
@@ -195,6 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("--mask_str", type=str, default="[MASK]", help="Mask string in the input sentences")
     parser.add_argument("--causallm", action="store_true", help="Use causal LM mode with minicons")
     parser.add_argument("--revision", type=str, default="", help="Model revision (optional)")
+    parser.add_argument("--standard_bert", action="store_true", help="Use standard BERT model initial token format")
     args = parser.parse_args()
 
     # Load input CSV
@@ -213,15 +230,23 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         causallm=args.causallm,
         model_name=args.model_name,
-        revision=args.revision
+        revision=args.revision,
+        standard_bert=args.standard_bert
     )
+
+    #Torch memory summary
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
     # Prepare output DataFrame
 
-    for r, (res, easier, harder) in zip(df.index, predictions):
+    for r, (res, easier, harder, w1_g, w1_l, w2_g, w2_l) in zip(df.index, predictions):
         df.loc[r, "easier"] = easier
         df.loc[r, "harder"] = harder
         df.loc[r, "easier-harder"] = easier - harder
+        df.loc[r, "Word1_Global_Affinity"] = w1_g
+        df.loc[r, "Word1_Local_Affinity"] = w1_l
+        df.loc[r, "Word2_Global_Affinity"] = w2_g
+        df.loc[r, "Word2_Local_Affinity"] = w2_l
 
     print(args)
     print(args.revision)

@@ -1,4 +1,6 @@
-torch
-transformers
-pandas
-minicons
+torch==2.7.1
+transformers==4.57.1
+minicons==0.3.32
+pandas==2.3.0
+tqdm==4.67.1
+datasets==3.6.0
