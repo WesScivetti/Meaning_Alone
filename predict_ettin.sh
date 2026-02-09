@@ -20,6 +20,8 @@ OUTPUT_FILES=(
 #  "jhu-clsp/ettin-encoder-1b false"
 #)
 
+
+
 MODELS=(
   "jhu-clsp/ettin-encoder-150m false"
   "jhu-clsp/ettin-encoder-400m false"
@@ -28,6 +30,28 @@ MODELS=(
   "jhu-clsp/ettin-decoder-400m true"
   "jhu-clsp/ettin-decoder-1b true"
 )
+#
+#  evisions = [
+#    "step2999",
+#    "step8994",
+#    "step20986",
+#    "step26982",
+#    "step29979",
+#    "step32976",
+#    "step35974",
+#    "step38972",
+#    "step41969",
+#    "step44967",
+#    "step47963",
+#    "step50960",
+#    "step53957",
+#    "step56955",
+#    "step59953",
+#    "step62950",
+#    "step65948",
+#    "step104916",
+#    "step119903"
+#]
 
 REVISIONS=(
   "step2999"
@@ -89,6 +113,10 @@ REVISIONS2 = (
   "step146880"
 )
 
+REVISIONS3 = (
+""
+)
+
 
 BATCH_SIZE=64
 TOPK=2
@@ -136,6 +164,8 @@ for ENTRY in "${MODELS[@]}"; do
         --revision "$REV" \
         $CAUSAL_FLAG
 
+      rm -rf ~/.cache/huggingface/transformers
+      rm -rf ~/.cache/huggingface/hub
 
       python3 predict.py \
         --input_tsv "$INPUT_TSV" \
@@ -148,11 +178,17 @@ for ENTRY in "${MODELS[@]}"; do
         --candidate "$CANDIDATE" \
         --revision "$REV"
 
+      rm -rf ~/.cache/huggingface/transformers
+      rm -rf ~/.cache/huggingface/hub
+
       python3 predict_blimp.py \
         --model_name "$MODEL" \
         --batch_size $BATCH_SIZE \
         --revision "$REV" \
         $CAUSAL_FLAG
+
+      rm -rf ~/.cache/huggingface/transformers
+      rm -rf ~/.cache/huggingface/hub
 
       python3 predict_comps.py \
         --model_name "$MODEL" \

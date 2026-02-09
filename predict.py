@@ -159,6 +159,7 @@ def get_masked_token_predictions_batched(
                 standard_bert=standard_bert,
                 cxn_list=cxn_list,
             )
+            #print(let_global)
 
             for b_idx, text in enumerate(batch_texts):
                 mask_positions = (input_ids[b_idx] == mask_token_id).nonzero(as_tuple=False).squeeze(1)

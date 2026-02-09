@@ -93,7 +93,7 @@ def print_results_for_data_file(filename, cxn, log_probs=False, world_knowledge_
     print("Number of examples considered here", len(df.index)/2)
     return mean_aligned_la, mean_la_rev_dir, mean_aligned_or, mean_or_rev_dir, mean_misaligned_la, mean_misaligned_la_rev_dir, mean_misaligned_or, mean_misaligned_or_rev_dir
 
-def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_knowledge_filter="all", verb=None):
+def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_knowledge_filter="all", verb=None, print_output=True):
   """"
   This takes the input file and computes an accuracy score by pairwise comparing logodds
   0,0,1 should be greater than 0,0,0
@@ -140,25 +140,25 @@ def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_k
         logodds = [np.log(e/h) for e,h in zip(easiers,harders)]
 
       #Compare Row 0 and 4, if 0 has greater logodds accuracy +1
-      if world_knowledge_filter in ["all", "aligned"]:
+      if world_knowledge_filter in ["all", "aligned", "aligned1"]:
           if logodds[0] > logodds[4]:
             correct += 1
           total += 1
 
       #Compare Row 1 and Row 5, if 5 has a greater logods accuracy +1
-      if world_knowledge_filter in ["all", "aligned"]:
+      if world_knowledge_filter in ["all", "aligned", "aligned2"]:
           if logodds[1] < logodds[5]: #1 should be less than 5
             correct += 1
           total += 1
 
       #Compare Row 2 and Row 6, 6 should have greater logodds
-      if world_knowledge_filter in ["all", "misaligned"]:
+      if world_knowledge_filter in ["all", "misaligned", "misaligned1"]:
           if logodds[2] < logodds[6]: #2 should be less than 6
             correct += 1
           total += 1
 
       #Compare Row 3 and 7, 3 should have greater logodds
-      if world_knowledge_filter in ["all", "misaligned"]:
+      if world_knowledge_filter in ["all", "misaligned", "misaligned2"]:
           if logodds[3] > logodds[7]: #3 should be greater than 7
             correct += 1
           total += 1
@@ -167,7 +167,8 @@ def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_k
 
       #Reset Rows
       rows = []
-  print(f"Correct {correct} / {total} = {correct/total}")
+  if print_output:
+    print(f"Correct {correct} / {total} = {correct/total}")
   acc = correct/total
   return acc
 if __name__ == "__main__":
@@ -182,14 +183,17 @@ if __name__ == "__main__":
     verbs = reference_df["Plain Verb"].unique().tolist()
 
     if args.accuracy:
+      print("ALL RESULTS")
       acc_full = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs)
+      print("ALIGNED RESULTS")
       acc_aligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned")
+      print("MISALIGNED RESULTS")
       acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned")
-      verb_accs = defaultdict(lambda: defaultdict(dict))
-      for v in verbs:
-            print(f"Verb specific results for verb {v}")
-            verb_accs[v]["all"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, verb=v)
-            verb_accs[v]["aligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned", verb=v)
-            verb_accs[v]["misaligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned", verb=v)
+      #verb_accs = defaultdict(lambda: defaultdict(dict))
+      # for v in verbs:
+      #       print(f"Verb specific results for verb {v}")
+      #       verb_accs[v]["all"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, verb=v)
+      #       verb_accs[v]["aligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned", verb=v)
+      #       verb_accs[v]["misaligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned", verb=v)
     else:
       print_results_for_data_file(args.input_tsv, args.construction, log_probs=args.log_probs)
