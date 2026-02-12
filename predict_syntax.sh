@@ -29,6 +29,33 @@ MODELS=(
 )
 
 
+REVISIONS2=(
+  "step5996"
+  "step11992"
+  "step17988"
+  "step23984"
+  "step26982"
+  "step32976"
+  "step38972"
+  "step44967"
+  "step50960"
+  "step56955"
+  "step62950"
+  "step68944"
+  "step74940"
+  "step80935"
+  "step86931"
+  "step92926"
+  "step98921"
+  "step104916"
+  "step110911"
+  "step116906"
+  "step122900"
+  "step128895"
+  "step134889"
+  "step140884"
+  "step146880"
+)
 
 
 REVISIONS=(
@@ -59,33 +86,7 @@ REVISIONS=(
   "step143882"
 )
 
-REVISIONS2=(
-  "step5996"
-  "step11992"
-  "step17988"
-  "step23984"
-  "step29979"
-  "step35974"
-  "step41969"
-  "step47963"
-  "step53957"
-  "step59953"
-  "step65948"
-  "step71942"
-  "step77938"
-  "step83933"
-  "step89929"
-  "step95924"
-  "step101918"
-  "step107913"
-  "step113909"
-  "step119903"
-  "step125897"
-  "step131892"
-  "step137887"
-  "step143882"
-  "step149879"
-)
+
 
 BATCH_SIZE=32
 REVISION=""
