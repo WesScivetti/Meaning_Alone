@@ -1,11 +1,13 @@
 import pandas as pd
 import os
-from eval import print_results_for_data_file_accuracy
+from eval import print_results_for_data_file_accuracy, print_results_for_data_file_syntax_accuracy
 import re
 from collections import defaultdict
 from tqdm import tqdm
 from eval_blimp import print_results_blimp_comps, print_results_ewok
 from argparse import ArgumentParser
+from utils import combine_two_dfs
+import numpy as np
 
 ewok_domains = ['social-relations', 'agent-properties', 'material-properties', 'spatial-relations', 'material-dynamics', 'quantitative-properties', 'social-interactions', 'physical-interactions', 'physical-dynamics', 'physical-relations', 'social-properties']
 
@@ -104,6 +106,31 @@ all_revisions = [
     "step146880",
     "step149879",
 ]
+
+def eval_syntax(models):
+    for m in models:
+        rows = []
+        print("Evaluating model:", m)
+        for r in tqdm(all_revisions):
+            syn_file = os.path.join("outputs",m,r, "syntactic_tests_aligned.tsv")
+            fixed_file = os.path.join("outputs",m,r, "syntactic_tests_fixed.tsv")
+            syn_df = pd.read_csv(syn_file, sep="\t")
+            fixed_df = pd.read_csv(fixed_file, sep="\t")
+            syn_df = combine_two_dfs(syn_df, fixed_df)
+            for cxn in ["let alone", "much less", "not to mention","never mind"]:
+                print("Evaluating model:", m, "revision:", r, "construction:", cxn)
+                scores, delta_surps, delta_surps_and = print_results_for_data_file_syntax_accuracy(syn_df, cxn)
+                for test_type in ["NPI", "Pseudocleft", "CP Conjunction", "VP Conjunction", "VP Gap Conjunction", "Avg_Test", "Avg_Control"]:
+                    row = [r, cxn, test_type, float(scores[test_type]), float(np.mean(delta_surps[test_type])), float(np.mean(delta_surps_and[test_type]))]
+                    rows.append(row)
+
+
+        output_dir = os.path.join("outputs_summary", m)
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, "accuracy_summary_syntax.tsv")
+        res_df = pd.DataFrame(rows, columns=["revision", "construction", "test_type", "accuracy", "delta_surps", "delta_surps_and"])
+        res_df.to_csv(output_file, sep="\t", index=False)
+
 
 
 def eval_ettin():
@@ -387,10 +414,18 @@ def eval_olmo():
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--model_name")
+    parser.add_argument("--syntax", action="store_true")
     args = parser.parse_args()
 
-    if args.model_name == "ettin":
-        eval_ettin()
+    if args.syntax:
+        models2 = [
+            "jhu-clsp/ettin-decoder-1b"
+        ]
+        eval_syntax(models2)
 
-    if args.model_name == "olmo":
-        eval_olmo()
+    else:
+        if args.model_name == "ettin":
+            eval_ettin()
+
+        if args.model_name == "olmo":
+            eval_olmo()

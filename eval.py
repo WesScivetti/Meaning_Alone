@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 from argparse import ArgumentParser
+from utils import combine_two_dfs
 
 def print_results_for_data_file(filename, cxn, log_probs=False, world_knowledge_filter=None, verb=None):
     """
@@ -171,29 +172,175 @@ def print_results_for_data_file_accuracy(filename, cxn, log_probs=False, world_k
     print(f"Correct {correct} / {total} = {correct/total}")
   acc = correct/total
   return acc
+
+def print_results_for_data_file_syntax_accuracy(full_df, cxn):
+    """
+    Syntactic eval for pf constructions
+    """
+    syn_df = full_df
+    syn_df = syn_df[syn_df["Cxn"].isin([cxn, "and"])]
+    #change "Score" column to be the negative of its original (surprisal values)
+    syn_df["Score"] = -1 * syn_df["Score"]
+    #chunk df into groups of 10 rows, each group of 10 rows corresponds to one example with 10 conditions (5 for and, 5 for cxn)
+    corrects = defaultdict(int)
+    totals = defaultdict(int)
+    delta_surps = defaultdict(list)
+    delta_surps_and = defaultdict(list)
+    rows = []
+    for r in syn_df.index:
+        row = syn_df.loc[r]
+        rows.append(row)
+        if len(rows) == 12:
+            #Compare the 6 rows for the cxn to the 6 rows for and
+            cxn_rows = [r for r in rows if r["Cxn"] == cxn]
+            and_rows = [r for r in rows if r["Cxn"] == "and"]
+
+
+            #okay each of these have 6 rows
+            #five differences each, score in row[0] to each of the others
+            #then compare and to cxn
+            s1 = cxn_rows[0].loc["Score"]
+            s2 = cxn_rows[1].loc["Score"]
+            s3 = cxn_rows[2].loc["Score"]
+            s4 = cxn_rows[3].loc["Score"]
+            s5 = cxn_rows[4].loc["Score"]
+            s6 = cxn_rows[5].loc["Score"]
+
+            and_s1 = and_rows[0].loc["Score"]
+            and_s2 = and_rows[1].loc["Score"]
+            and_s3 = and_rows[2].loc["Score"]
+            and_s4 = and_rows[3].loc["Score"]
+            and_s5 = and_rows[4].loc["Score"]
+            and_s6 = and_rows[5].loc["Score"]
+
+            #s2 - s1 is no NPI
+            #we expect that NPIs make PFs ungrammatical. So s2 should be comparatively more surprising (lower score) than s1. Relative to and, the s2-s1 difference should be higher.
+            diff_cxn = s2 - s1
+            delta_surps["NPI"].append(diff_cxn)
+            diff_and = and_s2 - and_s1
+            delta_surps_and["NPI"].append(diff_and)
+            if diff_cxn > diff_and:
+                #print(r, "CORRECT", diff_cxn, diff_and)
+                corrects["NPI"] += 1
+            else:
+                pass
+                #print(r, "INCORRECT", diff_cxn, diff_and)
+            totals["NPI"] += 1
+
+            #psuedocleft is also ungrammatical
+            diff_cxn = s3 - s1
+            delta_surps["Pseudocleft"].append(diff_cxn)
+            diff_and = and_s3 - and_s1
+            delta_surps_and["Pseudocleft"].append(diff_and)
+            if diff_cxn > diff_and:
+                corrects["Pseudocleft"] += 1
+            totals["Pseudocleft"] += 1
+
+            #cp conjunction is also ungrammatical
+            diff_cxn = s4 - s1
+            delta_surps["CP Conjunction"].append(diff_cxn)
+            diff_and = and_s4 - and_s1
+            delta_surps_and["CP Conjunction"].append(diff_and)
+            if diff_cxn > diff_and:
+                corrects["CP Conjunction"] += 1
+            totals["CP Conjunction"] += 1
+
+            #VP conjunction should be a lot closer, but calculate accuracy the same way (should be closer to 50%)
+            diff_cxn = s5 - s1
+            delta_surps["VP Conjunction"].append(diff_cxn)
+            diff_and = and_s5 - and_s1
+            delta_surps_and["VP Conjunction"].append(diff_and)
+            if diff_cxn > diff_and:
+                corrects["VP Conjunction"] += 1
+            totals["VP Conjunction"] += 1
+
+            #gapped vp conjunction should be closer, but calculate accuracy the same way
+            diff_cxn = s6 - s1
+            delta_surps["VP Gap Conjunction"].append(diff_cxn)
+            diff_and = and_s6 - and_s1
+            delta_surps_and["VP Gap Conjunction"].append(diff_and)
+            if diff_cxn > diff_and:
+                corrects["VP Gap Conjunction"] += 1
+            totals["VP Gap Conjunction"] += 1
+
+        #reset rows
+        if len(rows) == 12:
+            rows = []
+
+
+    scores = {}
+    for key in corrects.keys():
+        scores[key] = corrects[key] / totals[key]
+        print(f"Syntactic accuracy for {key}: {scores[key]} ({corrects[key]} / {totals[key]})")
+
+    for k in delta_surps.keys():
+        print(f"Mean delta surprisal for {k}: {np.mean(delta_surps[k])} (cxn) vs {np.mean(delta_surps_and[k])} (and)")
+
+    scores["Avg_Test"] = np.mean([scores["NPI"], scores["Pseudocleft"], scores["CP Conjunction"]])
+    scores["Avg_Control"] = np.mean([scores["VP Conjunction"], scores["VP Gap Conjunction"]])
+
+    delta_surps["Avg_Test"] = delta_surps["NPI"] + delta_surps["Pseudocleft"] + delta_surps["CP Conjunction"]
+    delta_surps["Avg_Control"] = delta_surps["VP Conjunction"] + delta_surps["VP Gap Conjunction"]
+
+    delta_surps_and["Avg_Test"] = delta_surps_and["NPI"] + delta_surps_and["Pseudocleft"] + delta_surps_and["CP Conjunction"]
+    delta_surps_and["Avg_Control"] = delta_surps_and["VP Conjunction"] + delta_surps_and["VP Gap Conjunction"]
+
+    return scores, delta_surps, delta_surps_and
+
+
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--input_tsv", type=str, required=True, help="Input TSV file with results")
+    parser.add_argument("--fixed_tsv", type=str, required=False, help="Input TSV file with results for syntactic eval")
     parser.add_argument("--construction", type=str, required=True, help="Construction to analyze")
     parser.add_argument("--log_probs", action="store_true", help="Whether to treat scores as log probabilities")
     parser.add_argument("--accuracy", action="store_true", help="Whether to compute accuracy instead of mean scores")
+    parser.add_argument("--all_cxns", action="store_true", help="Whether to compute all Cxns")
+    parser.add_argument("--syntax", action="store_true", help="Whether to compute syntactic accuracy")
     args = parser.parse_args()
+
+    if args.syntax:
+        syn_df = pd.read_csv(args.input_tsv, sep='\t')
+        fixed_df = pd.read_csv(args.fixed_tsv, sep='\t')
+        combined_df = combine_two_dfs(syn_df, fixed_df)
+        print_results_for_data_file_syntax_accuracy(combined_df, args.construction)
+        exit()
 
     reference_df = pd.read_csv(args.input_tsv, sep='\t')
     verbs = reference_df["Plain Verb"].unique().tolist()
 
-    if args.accuracy:
-      print("ALL RESULTS")
-      acc_full = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs)
-      print("ALIGNED RESULTS")
-      acc_aligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned")
-      print("MISALIGNED RESULTS")
-      acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned")
+    if not(args.all_cxns):
+        if args.accuracy:
+          print("ALL RESULTS")
+          acc_full = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs)
+          print("ALIGNED RESULTS")
+          acc_aligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned")
+          print("ALIGNED FORMATTED")
+          print("MISALIGNED RESULTS")
+          acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned")
+
       #verb_accs = defaultdict(lambda: defaultdict(dict))
       # for v in verbs:
       #       print(f"Verb specific results for verb {v}")
       #       verb_accs[v]["all"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, verb=v)
       #       verb_accs[v]["aligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="aligned", verb=v)
       #       verb_accs[v]["misaligned"] = print_results_for_data_file_accuracy(args.input_tsv, args.construction, log_probs=args.log_probs, world_knowledge_filter="misaligned", verb=v)
+        else:
+          print_results_for_data_file(args.input_tsv, args.construction, log_probs=args.log_probs)
+
     else:
-      print_results_for_data_file(args.input_tsv, args.construction, log_probs=args.log_probs)
+        if args.accuracy:
+            accuracies = defaultdict(dict)
+            for cxn in reference_df["Cxn"].unique().tolist():
+                print(f"Results for construction {cxn}")
+                acc_full = print_results_for_data_file_accuracy(args.input_tsv, cxn, log_probs=args.log_probs)
+                accuracies[cxn]["full"] = acc_full
+                print("ALIGNED RESULTS")
+                acc_aligned = print_results_for_data_file_accuracy(args.input_tsv, cxn, log_probs=args.log_probs, world_knowledge_filter="aligned")
+                accuracies[cxn]["aligned"] = acc_aligned
+                print("MISALIGNED RESULTS")
+                acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, cxn, log_probs=args.log_probs, world_knowledge_filter="misaligned")
+                accuracies[cxn]["misaligned"] = acc_misaligned
+
