@@ -4,3 +4,4 @@ minicons==0.3.32
 pandas==2.3.0
 tqdm==4.67.1
 datasets==3.6.0
+scikit-learn==1.8.0

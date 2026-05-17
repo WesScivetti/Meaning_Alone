@@ -8,6 +8,7 @@ from eval_blimp import print_results_blimp_comps, print_results_ewok
 from argparse import ArgumentParser
 from utils import combine_two_dfs
 import numpy as np
+from glob import glob
 
 ewok_domains = ['social-relations', 'agent-properties', 'material-properties', 'spatial-relations', 'material-dynamics', 'quantitative-properties', 'social-interactions', 'physical-interactions', 'physical-dynamics', 'physical-relations', 'social-properties']
 
@@ -107,16 +108,49 @@ all_revisions = [
     "step149879",
 ]
 
-def eval_syntax(models):
+
+pythia_revisions = ["step1","step2","step4","step8","step16","step32","step64","step128","step256", "step512"]
+for i in range(1000, 143000, 1000):
+  pythia_revisions.append(f'step{i}')
+
+pythia_log_revisions = [
+    "step1",
+    "step2",
+    "step4",
+    "step8",
+    "step16",
+    "step32",
+    "step64",
+    "step128",
+    "step256",
+    "step512",
+    "step1000",
+    "step2000",
+    "step4000",
+    "step8000",
+    "step16000",
+    "step32000",
+    "step64000",
+    "step128000",
+    "step143000"
+]
+
+def eval_syntax(models, revs, fix=False):
     for m in models:
         rows = []
         print("Evaluating model:", m)
-        for r in tqdm(all_revisions):
-            syn_file = os.path.join("outputs",m,r, "syntactic_tests_aligned.tsv")
-            fixed_file = os.path.join("outputs",m,r, "syntactic_tests_fixed.tsv")
-            syn_df = pd.read_csv(syn_file, sep="\t")
-            fixed_df = pd.read_csv(fixed_file, sep="\t")
-            syn_df = combine_two_dfs(syn_df, fixed_df)
+        for r in tqdm(revs):
+            if fix:
+                syn_file = os.path.join("outputs",m,r, "syntactic_tests_aligned.tsv")
+                fixed_file = os.path.join("outputs",m,r, "syntactic_tests_fixed.tsv")
+                syn_df = pd.read_csv(syn_file, sep="\t")
+                fixed_df = pd.read_csv(fixed_file, sep="\t")
+                syn_df = combine_two_dfs(syn_df, fixed_df)
+            else:
+                syn_file = syn_file = os.path.join("outputs",m,r, "syntactic_tests_combined.tsv")
+                syn_df = pd.read_csv(syn_file, sep="\t")
+
+
             for cxn in ["let alone", "much less", "not to mention","never mind"]:
                 print("Evaluating model:", m, "revision:", r, "construction:", cxn)
                 scores, delta_surps, delta_surps_and = print_results_for_data_file_syntax_accuracy(syn_df, cxn)
@@ -133,7 +167,7 @@ def eval_syntax(models):
 
 
 
-def eval_ettin():
+def eval_ettin(models, all_revisions=all_revisions):
 
     for m in models:
         res_model = defaultdict(dict)
@@ -188,6 +222,7 @@ def eval_ettin():
                 causal=True
                 log_probs=True
 
+            print("LOG PROBS:", log_probs)
 
             res = defaultdict(dict)
 
@@ -414,18 +449,19 @@ def eval_olmo():
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--model_name")
+
     parser.add_argument("--syntax", action="store_true")
     args = parser.parse_args()
 
     if args.syntax:
         models2 = [
-            "jhu-clsp/ettin-decoder-1b"
+            "jhu-clsp/ettin-decoder-1b",
         ]
-        eval_syntax(models2)
+        eval_syntax(models2, all_revisions, fix=True)
 
     else:
         if args.model_name == "ettin":
-            eval_ettin()
+            eval_ettin(models=["EleutherAI/pythia-12b"], all_revisions=pythia_log_revisions)
 
         if args.model_name == "olmo":
             eval_olmo()

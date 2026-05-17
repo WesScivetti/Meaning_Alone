@@ -23,7 +23,8 @@ def get_masked_token_predictions_batched(
         causallm: bool = False,
         model_name: str = "roberta-base",
         revision: str = "",
-        standard_bert = False
+        standard_bert = False,
+        pll_eval = True
 ):
     """
     Compute predictions for masked tokens (MLM) or conditional log-probs (CLM).
@@ -48,13 +49,23 @@ def get_masked_token_predictions_batched(
     if isinstance(texts, str):
         texts = [texts]
 
-    if causallm:
-        if not revision:
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForCausalLM.from_pretrained(model_name)
-        if revision:
-            tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
-            model = AutoModelForCausalLM.from_pretrained(model_name, revision=revision)
+    if causallm or pll_eval:
+        if pll_eval:
+            #Load a MLM if PLL
+            if not revision:
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model = AutoModelForMaskedLM.from_pretrained(model_name)
+            if revision:
+                tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
+                model = AutoModelForMaskedLM.from_pretrained(model_name, revision=revision)
+        else:
+            #Else load a causal LM if not PLL
+            if not revision:
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                model = AutoModelForCausalLM.from_pretrained(model_name)
+            if revision:
+                tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision)
+                model = AutoModelForCausalLM.from_pretrained(model_name, revision=revision)
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -63,7 +74,10 @@ def get_masked_token_predictions_batched(
         print(f"Model is on device: {dev}")
 
         # use minicons Scorer on device
-        lm_scorer = scorer.IncrementalLMScorer(model, tokenizer=tokenizer, device=device)
+        if pll_eval:
+            lm_scorer = scorer.MaskedLMScorer(model, tokenizer=tokenizer, device=device)
+        else:
+            lm_scorer = scorer.IncrementalLMScorer(model, tokenizer=tokenizer, device=device)
 
         outputs_all = []
         batched_outputs = []
@@ -213,6 +227,7 @@ if __name__ == "__main__":
     parser.add_argument("--causallm", action="store_true", help="Use causal LM mode with minicons")
     parser.add_argument("--revision", type=str, default="", help="Model revision (optional)")
     parser.add_argument("--standard_bert", action="store_true", help="Use standard BERT model initial token format")
+    parser.add_argument("--pll_eval", action="store_true", help="Use PLL evaluation mode with minicons (uses masked LM scorer)")
     args = parser.parse_args()
 
     # Load input CSV
@@ -232,7 +247,8 @@ if __name__ == "__main__":
         causallm=args.causallm,
         model_name=args.model_name,
         revision=args.revision,
-        standard_bert=args.standard_bert
+        standard_bert=args.standard_bert,
+        pll_eval=args.pll_eval
     )
 
     #Torch memory summary

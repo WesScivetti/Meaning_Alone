@@ -17,20 +17,21 @@ Let-Alone Scalar Semantics Experiments
 
 ## Overview
 
-This repository holds code for evaluating learning trajectories of scalar constructions. Code is available for both gathering log-probabilities from checkpoints and evaluation. 
+This repository holds code for evaluating learning trajectories of scalar constructions. Code is available for both gathering log-probabilities from checkpoints and evaluation.
 
 
 
 ## Dataset
 
 * combined\_easy.tsv is currently the main dataset
-* Columns: 
+* Columns:
 
 
 
 ## Set Up
 
 * pip install -r requirements.txt
+* The python version that was used for these experiments was python 3.13.5
 
 
 
@@ -48,7 +49,8 @@ This repository holds code for evaluating learning trajectories of scalar constr
 * eval\_accuracy.sh to get accuracy of ettin checkpoints (in progress)
 
 ## List of Scripts:
+
 * predict.py: used to generate log-probabilities / affinity scores for a PairedFocus cxn dataset.
-* predict_blimp.py: generate log-probabilities for BLiMP.
-* predict_comps.py: generate log-probabilites for COMPS. 
-* predict_ewok.py: generate log-probabilities for EWoK.
+* predict\_blimp.py: generate log-probabilities for BLiMP.
+* predict\_comps.py: generate log-probabilites for COMPS.
+* predict\_ewok.py: generate log-probabilities for EWoK.

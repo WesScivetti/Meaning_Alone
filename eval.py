@@ -189,12 +189,13 @@ def print_results_for_data_file_syntax_accuracy(full_df, cxn):
     rows = []
     for r in syn_df.index:
         row = syn_df.loc[r]
+        #print(row)
         rows.append(row)
         if len(rows) == 12:
             #Compare the 6 rows for the cxn to the 6 rows for and
+            #print(rows)
             cxn_rows = [r for r in rows if r["Cxn"] == cxn]
             and_rows = [r for r in rows if r["Cxn"] == "and"]
-
 
             #okay each of these have 6 rows
             #five differences each, score in row[0] to each of the others
@@ -269,13 +270,14 @@ def print_results_for_data_file_syntax_accuracy(full_df, cxn):
 
 
     scores = {}
-    for key in corrects.keys():
+    for key in totals.keys():
         scores[key] = corrects[key] / totals[key]
         print(f"Syntactic accuracy for {key}: {scores[key]} ({corrects[key]} / {totals[key]})")
 
     for k in delta_surps.keys():
         print(f"Mean delta surprisal for {k}: {np.mean(delta_surps[k])} (cxn) vs {np.mean(delta_surps_and[k])} (and)")
 
+    #print(scores.keys())
     scores["Avg_Test"] = np.mean([scores["NPI"], scores["Pseudocleft"], scores["CP Conjunction"]])
     scores["Avg_Control"] = np.mean([scores["VP Conjunction"], scores["VP Gap Conjunction"]])
 
@@ -303,9 +305,17 @@ if __name__ == "__main__":
 
     if args.syntax:
         syn_df = pd.read_csv(args.input_tsv, sep='\t')
-        fixed_df = pd.read_csv(args.fixed_tsv, sep='\t')
-        combined_df = combine_two_dfs(syn_df, fixed_df)
-        print_results_for_data_file_syntax_accuracy(combined_df, args.construction)
+        #fixed_df = pd.read_csv(args.fixed_tsv, sep='\t')
+        #combined_df = combine_two_dfs(syn_df, fixed_df)
+        avgs = []
+        for construction in ["let alone", "much less", "not to mention", "never mind"]:
+            print(f"Results for construction {construction}")
+            scores, d_surps, d_surps_and = print_results_for_data_file_syntax_accuracy(syn_df, construction)
+            #print(scores)
+            avgs.append(scores["Avg_Test"])
+            print(scores["Avg_Test"])
+            print("================================\n")
+        print(f"Average syntactic accuracy across all constructions: {np.mean(avgs)}")
         exit()
 
     reference_df = pd.read_csv(args.input_tsv, sep='\t')
