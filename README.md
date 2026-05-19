@@ -1,10 +1,10 @@
 # Meaning\_Alone
 
-Let-Alone Scalar Semantics Experiments
+## Overview
 
+This is the repo for the paper: "Language Models Learn Constructional Semantics, *Not To Mention* Syntax: Investigating LM Understanding of Paired-Focus  Constructions", to be presented at CoNLL 2026. The scripts here will allow you to generate predictions for a paired-focus dataset, run paired-focus syntactic and semantic evaluations, and run additional evaluations (blimp, comps, ewok, affinity scores) for model checkpoints.
 
-
-
+For convenience, several shell scripts are provided that loop through lists of models.
 
 * Generate probabilities for each model: predict.sh
 * Generate Probabilities for each model checkpoint: predict\_chkpts.sh (in progress)
@@ -15,9 +15,7 @@ Let-Alone Scalar Semantics Experiments
 
 
 
-## Overview
 
-This repository holds code for evaluating learning trajectories of scalar constructions. Code is available for both gathering log-probabilities from checkpoints and evaluation.
 
 
 
