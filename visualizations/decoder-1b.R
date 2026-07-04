@@ -1,8 +1,8 @@
 library(tidyverse)
 library(ggtext)
 
-evals_raw <- read_tsv("~/projects/plots-for-projects/accuracy_summary_decoder1b.tsv")
-syntax_raw <- read_tsv("~/projects/plots-for-projects/accuracy_summary_syntax_decoder1b.tsv")
+evals_raw <- read_tsv("../outputs_summary/jhu-clsp/ettin-decoder-1b/accuracy_summary_la_decoder1b.tsv")
+syntax_raw <- read_tsv("../outputs_summary/jhu-clsp/ettin-decoder-1b/accuracy_summary_syntax_decoder1b.tsv")
 
 syntax <- syntax_raw %>%
   filter(test_type == "Avg_Test") %>%

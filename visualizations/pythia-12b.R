@@ -2,9 +2,9 @@ library(tidyverse)
 library(scales)
 library(ggtext)
 
-evals_raw <- read_tsv("accuracy_summary_la.tsv")
+evals_raw <- read_tsv("../outputs_summary/EleutherAI/pythia-12b/accuracy_summary_la.tsv")
 
-syntax_raw <- read_tsv("accuracy_summary_syntax.tsv")
+syntax_raw <- read_tsv("../outputs_summary/EleutherAI/pythia-12b/accuracy_summary_syntax.tsv")
 
 syntax <- syntax_raw %>%
   filter(test_type == "Avg_Test") %>%
