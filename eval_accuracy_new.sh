@@ -3,7 +3,7 @@
 
 # ===== USER SETTINGS =====
 ROOT_DIR="outputs"               # Root where model outputs live
-RESULT_GLOB="*.tsv"              # Pattern for model prediction TSV(s) within each checkpoint dir
+RESULT_GLOB="*PLL.tsv"              # Pattern for model prediction TSV(s) within each checkpoint dir
 PYTHON_BIN="python3"
 
 # Models to evaluate (each should correspond to a subdirectory under $ROOT_DIR)

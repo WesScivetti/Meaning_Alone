@@ -354,3 +354,13 @@ if __name__ == "__main__":
                 acc_misaligned = print_results_for_data_file_accuracy(args.input_tsv, cxn, log_probs=args.log_probs, world_knowledge_filter="misaligned")
                 accuracies[cxn]["misaligned"] = acc_misaligned
 
+            print("PRINTOUT")
+            print(round(accuracies["letalone"]["aligned"]*100,1),
+                  round(accuracies["muchless"]["aligned"]*100,1),
+                  round(accuracies["nottomention"]["aligned"]*100,1),
+                  round(accuracies["nevermind"]["aligned"]*100,1),
+                  round(np.mean([accuracies["letalone"]["aligned"],
+                        accuracies["muchless"]["aligned"],
+                        accuracies["nottomention"]["aligned"],
+                        accuracies["nevermind"]["aligned"]])*100,1))
+

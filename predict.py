@@ -51,6 +51,7 @@ def get_masked_token_predictions_batched(
 
     if causallm or pll_eval:
         if pll_eval:
+            print("IN PLL EVAL MODE")
             #Load a MLM if PLL
             if not revision:
                 tokenizer = AutoTokenizer.from_pretrained(model_name)

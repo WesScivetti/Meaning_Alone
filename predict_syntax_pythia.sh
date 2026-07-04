@@ -28,6 +28,10 @@ MODELS=(
   "EleutherAI/pythia-410m-deduped true"
 )
 
+REVISIONS100=(
+  "step256"
+)
+
 REVISIONS=(
   "step1"
   "step2"
@@ -208,7 +212,7 @@ for ENTRY in "${MODELS[@]}"; do
     CAUSAL_FLAG=""
   fi
 
-  for REV in "${REVISIONS[@]}"; do
+  for REV in "${REVISIONS100[@]}"; do
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
     echo "  Revision: $REV"
     echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"

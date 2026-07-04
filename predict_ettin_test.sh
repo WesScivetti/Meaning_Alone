@@ -20,14 +20,18 @@ OUTPUT_FILES=(
 #  "jhu-clsp/ettin-encoder-1b false"
 #)
 
+#MODELS=(
+#  "jhu-clsp/ettin-encoder-400m false"
+#  "jhu-clsp/ettin-encoder-1b false"
+#)
+
 MODELS=(
-  "jhu-clsp/ettin-encoder-400m false"
-  "jhu-clsp/ettin-decoder-400m true"
+  "facebook/opt-125m true"
+  "facebook/opt-350m true"
 )
 
 REVISIONS=(
-  "step2999"
-  "step200839"
+  ""
 )
 
 BATCH_SIZE=32
@@ -83,23 +87,23 @@ for ENTRY in "${MODELS[@]}"; do
         --candidate "$CANDIDATE" \
         --revision "$REV"
 
-      python3 predict_blimp.py \
-        --model_name "$MODEL" \
-        --batch_size $BATCH_SIZE \
-        --revision "$REV" \
-        $CAUSAL_FLAG
-
-      python3 predict_comps.py \
-        --model_name "$MODEL" \
-        --batch_size $BATCH_SIZE \
-        --revision "$REV" \
-        $CAUSAL_FLAG
-
-      python3 predict_ewok.py \
-        --model_name "$MODEL" \
-        --batch_size $BATCH_SIZE \
-        --revision "$REV" \
-        $CAUSAL_FLAG
+#      python3 predict_blimp.py \
+#        --model_name "$MODEL" \
+#        --batch_size $BATCH_SIZE \
+#        --revision "$REV" \
+#        $CAUSAL_FLAG
+#
+#      python3 predict_comps.py \
+#        --model_name "$MODEL" \
+#        --batch_size $BATCH_SIZE \
+#        --revision "$REV" \
+#        $CAUSAL_FLAG
+#
+#      python3 predict_ewok.py \
+#        --model_name "$MODEL" \
+#        --batch_size $BATCH_SIZE \
+#        --revision "$REV" \
+#        $CAUSAL_FLAG
 
 
     done
