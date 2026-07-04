@@ -34,7 +34,7 @@ This is the repo for the paper: "Language Models Learn Constructional Semantics,
 ### Affinity
 * affinity.py (don't need to run separately)
 
-### Shell Sripts for Looping through Models
+### Looping through Models
 
 
 * Run predict\_pythia.sh or predict\_ettin.sh to query the checkpoints that are specified within. Edit the files to query different checkpoints.
@@ -46,7 +46,12 @@ This is the repo for the paper: "Language Models Learn Constructional Semantics,
 
 ## Running Experiments: Evaluation
 
-* eval\_accuracy.sh to get accuracy of ettin checkpoints (in progress)
+* eval.py
+* eval_blimp.py
+* evaluate_affinities.py
+* main_eval.py
+
+* eval\_accuracy.sh to get accuracy of loop checkpoints
 
 ## Correlation Analysis
 * corr.py
