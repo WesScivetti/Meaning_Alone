@@ -6,7 +6,9 @@ from scipy.stats import pearsonr, spearmanr
 
 def add_delta_columns(input_file: str, output_file: str, target_col: str = "accuracy"):
     """
-    Adds delta columns to the input TSV file and writes the updated DataFrame to the output TSV file.
+    Adds delta columns to the input TSV file and writes the updated DataFrame to the output TSV file. This is used for
+    calculating the change in accuracy or score between revisions for each construction and test type, and
+    first-difference correlation analysis.
 
     Args:
         input_file: Path to input TSV file with a target column, either score or accuracy.
