@@ -57,3 +57,4 @@ This is the repo for the paper: "Language Models Learn Constructional Semantics,
 * corr.py
 
 ## Visualizations (in progress)
+* visualizations contains r scripts for creating plots
